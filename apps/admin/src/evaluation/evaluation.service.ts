@@ -8,7 +8,7 @@ import { Animal } from '@app/data/entities/animal.entity';
 import { User } from '@app/data/entities/user.entity';
 import { Media } from '@app/data/entities/media.entity'; 
 import { PhotoType, SeverityScale, ToothCode, ColorScale, ToothType } from '@app/data/enums/dental-evaluation.enums'; 
-import { AuditService } from '../audit/audit.service';
+// REMOVIDO: import { AuditService } ...
 
 @Injectable()
 export class EvaluationService {
@@ -30,7 +30,7 @@ export class EvaluationService {
     
     private dataSource: DataSource,
     
-    private readonly auditService: AuditService 
+    // REMOVIDO: private readonly auditService: AuditService 
   ) {}
 
   // --- 1. CRIAR AVALIAÇÃO ---
@@ -56,12 +56,11 @@ export class EvaluationService {
     });
     
     const isSameDay = evaluation && new Date().toDateString() === new Date(evaluation.evaluationDate).toDateString();
-    let actionType = 'CREATE';
-
+    
+    // Nota: O Interceptor vai detectar isto como um POST e logar 'CREATE_EVALUATION'
     if (evaluation && isSameDay) {
         evaluation.generalObservations = createDto.notes || evaluation.generalObservations;
         evaluation.evaluationDate = new Date(); 
-        actionType = 'UPDATE_SAMEDAY';
     } else {
         evaluation = this.evaluationRepository.create({
             animal: animal, 
@@ -73,14 +72,7 @@ export class EvaluationService {
     
     const savedEvaluation = await this.evaluationRepository.save(evaluation);
 
-    // --- LOG DE AUDITORIA ---
-    await this.auditService.log(
-        actionType, 
-        'Evaluation', 
-        savedEvaluation.id, 
-        evaluator, 
-        `Avaliação realizada para o animal ${animal.tagCode} (${animal.breed})`
-    );
+    // REMOVIDO: Log Manual. O Interceptor tratará disto.
 
     if (createDto.teeth && Array.isArray(createDto.teeth)) {
         for (const toothData of createDto.teeth) {
@@ -341,14 +333,7 @@ export class EvaluationService {
           }
       }
       
-      // --- LOG DE UPDATE ---
-      await this.auditService.log(
-        'UPDATE', 
-        'Evaluation', 
-        id, 
-        user, 
-        `Avaliação atualizada por ${user.fullName || 'Usuário'}`
-      );
+      // REMOVIDO: Log manual. O Interceptor tratará disto.
 
       await queryRunner.commitTransaction();
 
@@ -558,7 +543,6 @@ export class EvaluationService {
         const periodontal = Number(ev.max_periodontal || 0); // Adicionado
 
         // CRITÉRIO DE CRITICIDADE AJUSTADO:
-        // Adicionei 'exposure' (Exposição de Câmara) e 'periodontal >= 3' como críticos, pois indicam dor ou perda dentária iminente.
         if (fracture >= 2 || pulpitis >= 2 || recession >= 3 || exposure > 0 || periodontal >= 3) {
             critical++;
         } else {

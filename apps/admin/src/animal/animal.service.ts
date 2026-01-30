@@ -25,7 +25,7 @@ export class AnimalService {
     private mediaRepository: Repository<Media>,
 
     private dataSource: DataSource,
-    private auditService: AuditService, 
+    private auditService: AuditService, // Mantido apenas para o SYNC
   ) {
     this.s3Client = new S3Client({
       region: process.env.AWS_REGION || 'us-east-1',
@@ -36,7 +36,7 @@ export class AnimalService {
     });
   }
 
-  // --- PROCESSAR WEBHOOK (Lógica SISBOV + Correção de Chaves e Datas) ---
+  // --- PROCESSAR WEBHOOK ---
   async processWebhook(data: any) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -100,17 +100,16 @@ export class AnimalService {
                 where: { sisbovNumber: mappedData.sisbovNumber } 
             });
         }
-        // Isso evita duplicar animais de teste a cada sincronização. (Upsert via CHIP)
+        // Upsert via CHIP (Lógica de Teste)
         if (!animal && mappedData.chip) {
              animal = await queryRunner.manager.findOne(Animal, { 
                 where: { chip: mappedData.chip } 
             });
             
             if (animal) {
-                this.logger.warn(`Animal encontrado pelo CHIP (${mappedData.chip}) em vez do SISBOV. (Lógica de Teste)`);
+                this.logger.warn(`Animal encontrado pelo CHIP (${mappedData.chip}) em vez do SISBOV.`);
             }
         }
-        // ----------------------------------------------------
 
         if (animal) {
             Object.assign(animal, mappedData);
@@ -140,21 +139,34 @@ export class AnimalService {
                     where: { s3UrlPath: link, animal: { id: savedAnimal.id } } 
                 });
 
+                // Se a foto ainda não existe no nosso banco...
                 if (!existingMedia) {
-                    let finalUrl = link;
+                    let finalUrl = link; // Começamos com o link do Drive por segurança
+
+                    // LÓGICA DO FLUXO: Drive -> Download -> AWS -> Link AWS
                     if (link.includes('drive.google.com')) {
                         try {
-                             // Lógica de upload S3 (se necessário)
+                             // Tenta realizar o processo de migração
+                             // Se a conta AWS não estiver configurada, vai dar erro aqui e cair no catch
+                             const s3Url = await this.processDriveImageToS3(link, savedAnimal.tagCode, index);
+                             
+                             // Se deu certo (retornou string), o link final passa a ser o da AWS
+                             if (s3Url) {
+                                finalUrl = s3Url;
+                                this.logger.log(`Imagem migrada para S3: ${finalUrl}`);
+                             }
                         } catch (e) {
-                            this.logger.warn(`Erro upload S3 webhook: ${e.message}`);
+                            // Se falhar (ex: sem credenciais), loga o aviso mas não para o sistema
+                            this.logger.warn(`Upload S3 pendente (usando link original): ${e.message}`);
                         }
                     }
 
+                    // Salva no banco. Se o upload funcionou, 'finalUrl' é AWS. Se não, é Drive.
+                    // O Frontend vai ler o que estiver em 's3UrlPath'.
                     const newMedia = this.mediaRepository.create({
                         animal: savedAnimal,
-                        s3UrlPath: finalUrl,
+                        s3UrlPath: finalUrl, 
                         originalDriveUrl: link,
-                        // Correção para ler latitude/longitude do novo formato JSON
                         latitude: foto['latitude'] || foto['latitude_latitude'],
                         longitude: foto['longitude'] || foto['latitude_longitude'],
                         photoType: index === 0 ? PhotoType.FRONTAL : PhotoType.LATERAL_LEFT,
@@ -167,7 +179,6 @@ export class AnimalService {
 
         await queryRunner.commitTransaction();
 
-        // Retorna o tipo de ação para contagem
         return { 
             action: actionType, 
             id: savedAnimal.id,
@@ -177,14 +188,13 @@ export class AnimalService {
     } catch (err) {
         await queryRunner.rollbackTransaction();
         this.logger.error(`Erro no Webhook: ${err.message}`);
-        console.error("Payload falhou:", JSON.stringify(data));
         throw new HttpException('Erro ao processar dados externos', HttpStatus.BAD_REQUEST);
     } finally {
         await queryRunner.release();
     }
   }
 
-  // --- SINCRONIZAÇÃO PULL ---
+  // --- SINCRONIZAÇÃO PULL (Mantém logs personalizados) ---
   async syncFromExternalApi(start?: string, end?: string) {
     const today = new Date();
     const sevenDaysAgo = new Date();
@@ -199,40 +209,37 @@ export class AnimalService {
 
     this.logger.log(`🔄 Iniciando sincronização: ${url}`);
 
+    // LOG DE INÍCIO - Mantido pois é uma ação de sistema importante
     await this.auditService.log(
         'SYNC_START',
         'ExternalApi',
         'SISBOV', 
-        null, // Usuário é null (Ação do Sistema)
+        null, 
         `Iniciando sincronização do período: ${dtInit} a ${dtEnd}`
     );
     
     try {
       const response = await axios.get(url);
-      
       const externalAnimals = response.data.data || response.data;
 
       if (!Array.isArray(externalAnimals)) {
-        this.logger.error("Formato recebido:", JSON.stringify(response.data));
         throw new Error('Formato inválido: esperava um array em "data" ou na raiz.');
       }
 
-      // [MUDANÇA] Contadores
       let countTotal = 0;
       let countCreated = 0;
       let countUpdated = 0;
 
       for (const item of externalAnimals) {
         const result = await this.processWebhook(item);
-        
         countTotal++;
         if (result.action === 'CREATED') countCreated++;
         if (result.action === 'UPDATED') countUpdated++;
       }
 
-      // [MUDANÇA] Log detalhado
       const details = `Sincronização concluída. Total: ${countTotal}. Novos: ${countCreated}. Atualizados: ${countUpdated}.`;
 
+      // LOG DE SUCESSO - Mantido com estatísticas detalhadas
       await this.auditService.log(
           'SYNC_SUCCESS',
           'ExternalApi',
@@ -244,22 +251,15 @@ export class AnimalService {
       return { 
           message: `✅ Sincronização concluída!`,
           period: `${dtInit} a ${dtEnd}`,
-          stats: {
-              total: countTotal,
-              created: countCreated,
-              updated: countUpdated
-          }
+          stats: { total: countTotal, created: countCreated, updated: countUpdated }
       };
 
     } catch (error) {
-        if (axios.isAxiosError(error) && error.response) {
-            if (error.response.status === 404) {
-                return { 
-                    message: 'Nenhum animal encontrado ou alterado neste período.',
-                    period: `${dtInit} a ${dtEnd}`
-                };
-            }
+        if (axios.isAxiosError(error) && error.response?.status === 404) {
+             return { message: 'Nenhum animal encontrado ou alterado neste período.', period: `${dtInit} a ${dtEnd}` };
         }
+        
+        // LOG DE ERRO - Mantido
         await this.auditService.log(
             'SYNC_ERROR',
             'ExternalApi',
@@ -276,6 +276,7 @@ export class AnimalService {
   create(createAnimalDto: CreateAnimalDto) {
     const animal = this.animalRepository.create(createAnimalDto);
     return this.animalRepository.save(animal);
+    // Interceptor gravará CREATE_ANIMAL automaticamente
   }
 
   findAll() {
@@ -305,7 +306,6 @@ export class AnimalService {
       media: animal.mediaFiles?.map(m => ({
          s3UrlPath: m.s3UrlPath,
          originalDriveUrl: m.originalDriveUrl,
-         // IMPORTANTE: Enviar latitude/longitude para o frontend
          latitude: m.latitude,
          longitude: m.longitude
       })) || [],
@@ -318,17 +318,10 @@ export class AnimalService {
 
     await this.animalRepository.update(id, updateAnimalDto);
     
-    const updated = await this.findOne(id);
-
-    await this.auditService.log(
-        'UPDATE',
-        'Animal',
-        id,
-        user,
-        `Usuário ${user.fullName} atualizou o animal: ${animal.tagCode}`
-    );
-
-    return updated;
+    // REMOVIDO: await this.auditService.log(...) 
+    // O Interceptor captura o PATCH/PUT e loga automaticamente
+    
+    return this.findOne(id);
   }
 
   async remove(id: number, user: User) {
@@ -339,38 +332,28 @@ export class AnimalService {
     
     await this.animalRepository.remove(animalEntity);
 
-    await this.auditService.log(
-        'DELETE',
-        'Animal',
-        id,
-        user,
-        `Usuário ${user.fullName} EXCLUIU o animal: ${animalEntity.tagCode}`
-    );
+    // REMOVIDO: await this.auditService.log(...)
+    // O Interceptor captura o DELETE e loga automaticamente
     
     return animalEntity;
   }
 
   async findUniqueFarms() {
-    const queryBuilder = this.animalRepository.createQueryBuilder('animal');
-    const farms = await queryBuilder
+    return this.animalRepository.createQueryBuilder('animal')
       .select('DISTINCT animal.farm', 'farm')
       .where('animal.farm IS NOT NULL')
       .orderBy('animal.farm', 'ASC')
-      .getRawMany();
-
-    return farms.map(f => f.farm);
+      .getRawMany()
+      .then(res => res.map(f => f.farm));
   }
 
   async findUniqueClients() {
-    const queryBuilder = this.animalRepository.createQueryBuilder('animal');
-    const clients = await queryBuilder
+    return this.animalRepository.createQueryBuilder('animal')
       .select('DISTINCT animal.client', 'client')
-      .where('animal.client IS NOT NULL')
-      .andWhere("animal.client != ''")
+      .where("animal.client IS NOT NULL AND animal.client != ''")
       .orderBy('animal.client', 'ASC')
-      .getRawMany();
-
-    return clients.map(c => c.client);
+      .getRawMany()
+      .then(res => res.map(c => c.client));
   }
 
   // --- S3 HELPER ---
