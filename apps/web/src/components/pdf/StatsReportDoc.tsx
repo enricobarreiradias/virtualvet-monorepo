@@ -1,213 +1,219 @@
-import { Page, Text, View, Document, StyleSheet, Image } from '@react-pdf/renderer';
+import {
+  Page,
+  Text,
+  View,
+  Document,
+  StyleSheet,
+  Image,
+  Font,
+} from "@react-pdf/renderer";
+
+// Registrar fontes para garantir acentuação correta
+Font.register({
+  family: "Helvetica",
+  fonts: [
+    {
+      src: "https://fonts.gstatic.com/s/helveticaneue/v70/1Ptsg8zYS_SKggPNyC0IT4ttDfA.ttf",
+    },
+    {
+      src: "https://fonts.gstatic.com/s/helveticaneue/v70/1Ptsg8zYS_SKggPNyC0IT4ttDfB.ttf",
+      fontWeight: "bold",
+    },
+  ],
+});
 
 const styles = StyleSheet.create({
-  page: { 
-    padding: 50, 
-    fontFamily: 'Helvetica', 
-    fontSize: 10, 
-    color: '#1f2937',
-    backgroundColor: '#ffffff'
-  },
-  
-  header: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    marginBottom: 30, 
-    borderBottomWidth: 0.5, 
-    borderBottomColor: '#d1d5db', 
-    paddingBottom: 15 
-  },
-  logoConfig: { 
-    width: 100, 
-    height: 50, 
-    objectFit: 'contain' 
-  },
-  titleBlock: { 
-    textAlign: 'right' 
-  },
-  title: { 
-    fontSize: 22, 
-    fontWeight: 'bold', 
-    color: '#111827',
-    letterSpacing: -0.5
-  },
-  subtitle: { 
-    fontSize: 9, 
-    color: '#6b7280', 
-    marginTop: 4 
+  page: {
+    padding: 40,
+    fontFamily: "Helvetica",
+    fontSize: 10,
+    color: "#1f2937",
+    backgroundColor: "#ffffff",
   },
 
-  // Títulos de seção 
-  sectionTitle: { 
-    fontSize: 12, 
-    fontWeight: 'bold', 
-    color: '#374151', 
-    marginTop: 24, 
-    marginBottom: 12, 
-    borderBottomWidth: 0.5, 
-    borderBottomColor: '#e5e7eb', 
-    paddingBottom: 6,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 30,
+    borderBottomWidth: 2,
+    borderBottomColor: "#0F766E", // Cor da marca
+    paddingBottom: 15,
+    alignItems: "center",
   },
-  
-  // KPIs 
-  kpiContainer: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    marginBottom: 24,
-    gap: 12
+  logoConfig: {
+    width: 80,
+    height: 60,
+    objectFit: "contain",
   },
-  kpiBox: { 
+  titleBlock: {
     flex: 1,
-    padding: 16, 
-    backgroundColor: '#f9fafb',
+    paddingHorizontal: 20,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#0F766E",
+    letterSpacing: -0.5,
+  },
+  subtitle: {
+    fontSize: 9,
+    color: "#6b7280",
+    marginTop: 4,
+  },
+
+  // Títulos de seção
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: "bold",
+    color: "#0F766E",
+    marginTop: 20,
+    marginBottom: 10,
+    borderBottomWidth: 0.5,
+    borderBottomColor: "#e5e7eb",
+    paddingBottom: 4,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+
+  // KPIs
+  kpiContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 20,
+    gap: 10,
+  },
+  kpiBox: {
+    flex: 1,
+    padding: 12,
+    backgroundColor: "#f9fafb",
     borderWidth: 0.5,
-    borderColor: '#e5e7eb',
-    borderRadius: 4
+    borderColor: "#e5e7eb",
+    borderRadius: 4,
+    alignItems: "center",
   },
-  kpiValue: { 
-    fontSize: 28, 
-    fontWeight: 'bold',
-    marginBottom: 4
+  kpiValue: {
+    fontSize: 24,
+    fontWeight: "bold",
+    marginBottom: 4,
   },
-  kpiLabel: { 
-    fontSize: 8, 
-    textTransform: 'uppercase', 
-    color: '#6b7280',
-    letterSpacing: 0.5
+  kpiLabel: {
+    fontSize: 7,
+    textTransform: "uppercase",
+    color: "#6b7280",
+    letterSpacing: 0.5,
+    textAlign: "center",
   },
 
   // Gráfico de Barras
-  chartRow: { 
-    marginBottom: 10 
+  chartRow: {
+    marginBottom: 8,
   },
-  chartLabelRow: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    marginBottom: 4 
+  chartLabelRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 2,
   },
-  chartLabel: { 
-    fontSize: 9, 
-    color: '#4b5563'
+  chartLabel: {
+    fontSize: 8,
+    color: "#4b5563",
   },
   chartValue: {
-    fontSize: 9,
-    fontWeight: 'bold',
-    color: '#1f2937'
-  },
-  chartBarContainer: { 
-    height: 10, 
-    backgroundColor: '#f3f4f6', 
-    borderRadius: 2,
-    overflow: 'hidden',
-    borderWidth: 0.5,
-    borderColor: '#e5e7eb'
-  },
-  chartBarFill: { 
-    height: '100%' 
-  },
-
-  // Filtros 
-  filtersBox: {
-    marginBottom: 24,
-    backgroundColor: '#f9fafb',
-    padding: 12,
-    borderRadius: 4,
-    borderWidth: 0.5,
-    borderColor: '#e5e7eb'
-  },
-  filtersText: {
     fontSize: 8,
-    color: '#6b7280',
-    lineHeight: 1.4
+    fontWeight: "bold",
+    color: "#1f2937",
+  },
+  chartBarContainer: {
+    height: 8,
+    backgroundColor: "#f3f4f6",
+    borderRadius: 2,
+    overflow: "hidden",
+  },
+  chartBarFill: {
+    height: "100%",
   },
 
-  // Distribuição de severidade 
+  // Distribuição de severidade
   severityContainer: {
-    flexDirection: 'row',
-    gap: 12
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 5,
   },
   severityCard: {
     flex: 1,
-    padding: 14,
+    padding: 10,
     borderRadius: 4,
-    borderWidth: 0.5
+    borderWidth: 0.5,
   },
   severityTitle: {
-    fontWeight: 'bold',
-    fontSize: 10,
-    marginBottom: 6
+    fontWeight: "bold",
+    fontSize: 9,
+    marginBottom: 4,
   },
   severityDescription: {
-    fontSize: 8,
-    lineHeight: 1.3
+    fontSize: 7,
+    lineHeight: 1.2,
   },
 
-  // Tabela de casos críticos 
+  // Tabela de casos críticos
   criticalSection: {
-    marginTop: 24
+    marginTop: 15,
   },
   criticalTitle: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#991b1b',
-    marginBottom: 12,
-    paddingBottom: 6,
+    fontSize: 11,
+    fontWeight: "bold",
+    color: "#991b1b",
+    marginBottom: 8,
+    paddingBottom: 4,
     borderBottomWidth: 0.5,
-    borderBottomColor: '#fca5a5',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5
+    borderBottomColor: "#fca5a5",
+    textTransform: "uppercase",
   },
   tableHeader: {
-    flexDirection: 'row',
-    backgroundColor: '#fef2f2',
-    padding: 8,
+    flexDirection: "row",
+    backgroundColor: "#fef2f2",
+    padding: 6,
     borderBottomWidth: 1,
-    borderBottomColor: '#fca5a5',
-    borderTopWidth: 0.5,
-    borderTopColor: '#fca5a5'
+    borderBottomColor: "#fca5a5",
   },
   tableHeaderText: {
-    fontSize: 8,
-    fontWeight: 'bold',
-    color: '#7f1d1d',
-    textTransform: 'uppercase',
-    letterSpacing: 0.3
+    fontSize: 7,
+    fontWeight: "bold",
+    color: "#7f1d1d",
+    textTransform: "uppercase",
   },
   tableRow: {
-    flexDirection: 'row',
-    padding: 8,
+    flexDirection: "row",
+    padding: 6,
     borderBottomWidth: 0.5,
-    borderBottomColor: '#f3f4f6'
+    borderBottomColor: "#f3f4f6",
   },
   tableRowAlt: {
-    backgroundColor: '#fefefe'
+    backgroundColor: "#fffafa",
   },
   tableCell: {
-    fontSize: 8
+    fontSize: 7,
   },
   tableCellBold: {
-    fontWeight: 'bold'
+    fontWeight: "bold",
   },
   tableCellCritical: {
-    color: '#991b1b',
-    fontWeight: 'bold'
+    color: "#991b1b",
+    fontWeight: "bold",
   },
 
-  // Footer 
-  footer: { 
-    position: 'absolute', 
-    bottom: 30, 
-    left: 50, 
-    right: 50, 
-    textAlign: 'center', 
-    fontSize: 8, 
-    color: '#9ca3af', 
-    borderTopWidth: 0.5, 
-    borderTopColor: '#e5e7eb', 
-    paddingTop: 8 
-  }
+  // Footer
+  footer: {
+    position: "absolute",
+    bottom: 30,
+    left: 40,
+    right: 40,
+    textAlign: "center",
+    fontSize: 7,
+    color: "#9ca3af",
+    borderTopWidth: 0.5,
+    borderTopColor: "#e5e7eb",
+    paddingTop: 8,
+  },
 });
 
 // --- TIPAGEM ---
@@ -238,33 +244,47 @@ export interface ReportStatsData {
     criticalPercentage: string;
   };
   pathologies: Record<string, PathologyItem>;
-  criticalAnimals?: CriticalAnimal[]; 
+  criticalAnimals?: CriticalAnimal[];
+}
+
+// --- NOVA INTERFACE DE OPÇÕES ---
+export interface StatsReportOptions {
+  showGeneralStats: boolean;
+  showPathologyList: boolean;
+  showCriticalList: boolean;
+  clientLogo?: string | null;
+  clientName?: string;
 }
 
 interface Props {
-  stats: ReportStatsData;      
-  pathologyList: PathologyItem[]; 
+  stats: ReportStatsData;
+  pathologyList: PathologyItem[];
   filters: {
     farm: string;
     client: string;
     period: string;
   };
   user: { name: string };
+  options: StatsReportOptions; // Adicionado aqui
 }
 
-export const StatsReportDoc = ({ stats, pathologyList, filters, user }: Props) => {
+export const StatsReportDoc = ({
+  stats,
+  pathologyList,
+  filters,
+  user,
+  options, // Recebendo opções
+}: Props) => {
   const total = stats.general.total || 1;
 
   const getPathologyColor = (index: number) => {
     const colors = [
-      '#3b82f6', 
-      '#10b981', 
-      '#f59e0b', 
-      '#ef4444', 
-      '#8b5cf6', 
-      '#ec4899', 
-      '#06b6d4', 
-      '#f97316', 
+      "#0F766E", // Primary
+      "#10b981",
+      "#f59e0b",
+      "#ef4444",
+      "#8b5cf6",
+      "#ec4899",
     ];
     return colors[index % colors.length];
   };
@@ -272,143 +292,233 @@ export const StatsReportDoc = ({ stats, pathologyList, filters, user }: Props) =
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        
-        {/* HEADER  */}
+        {/* HEADER COM DUAS LOGOS */}
         <View style={styles.header}>
+          {/* Logo VirtualVet (Esquerda) */}
           <Image src="/logoFull.png" style={styles.logoConfig} />
+
           <View style={styles.titleBlock}>
             <Text style={styles.title}>Relatório Gerencial</Text>
-            <Text style={styles.subtitle}>Gerado por: {user.name}</Text>
-            <Text style={styles.subtitle}>Data: {new Date().toLocaleDateString('pt-BR')}</Text>
-          </View>
-        </View>
-
-        {/* FILTROS APLICADOS */}
-        <View style={styles.filtersBox}>
-          <Text style={styles.filtersText}>
-            FILTROS APLICADOS: Fazenda ({filters.farm === 'all' ? 'Todas' : filters.farm}) • 
-            Cliente ({filters.client === 'all' ? 'Todos' : filters.client}) • 
-            Período ({filters.period} dias)
-          </Text>
-        </View>
-
-        {/* KPIs  */}
-        <View style={styles.kpiContainer}>
-          <View style={styles.kpiBox}>
-            <Text style={[styles.kpiValue, { color: '#1f2937' }]}>{stats.general.total}</Text>
-            <Text style={styles.kpiLabel}>Animais Avaliados</Text>
-          </View>
-          <View style={styles.kpiBox}>
-            <Text style={[styles.kpiValue, { color: '#059669' }]}>{stats.general.healthyPercentage}%</Text>
-            <Text style={styles.kpiLabel}>Índice de Saúde</Text>
-          </View>
-          <View style={styles.kpiBox}>
-            <Text style={[styles.kpiValue, { color: '#dc2626' }]}>{stats.general.totalLesions}</Text>
-            <Text style={styles.kpiLabel}>Total de Lesões</Text>
-          </View>
-        </View>
-
-        {/* GRÁFICO DE PATOLOGIAS */}
-        <Text style={styles.sectionTitle}>Principais Patologias Identificadas</Text>
-        <View>
-          {pathologyList.map((item, index) => {
-            const percent = (item.count / total) * 100;
-            const widthPercent = percent > 100 ? 100 : percent; 
-            
-            return (
-              <View key={item.key} style={styles.chartRow}>
-                <View style={styles.chartLabelRow}>
-                  <Text style={styles.chartLabel}>{item.label}</Text>
-                  <Text style={styles.chartValue}>{item.count} ({percent.toFixed(1)}%)</Text>
-                </View>
-                <View style={styles.chartBarContainer}>
-                  <View 
-                    style={[
-                      styles.chartBarFill, 
-                      { width: `${widthPercent}%`, backgroundColor: getPathologyColor(index) }
-                    ]} 
-                  />
-                </View>
-              </View>
-            );
-          })}
-          {pathologyList.length === 0 && (
-            <Text style={{ fontSize: 9, color: '#6b7280', fontStyle: 'italic' }}>
-              Nenhum dado registrado no período selecionado.
+            {options.clientName && (
+              <Text style={{ fontSize: 10, marginTop: 2, fontWeight: "bold" }}>
+                Cliente: {options.clientName}
+              </Text>
+            )}
+            <Text style={styles.subtitle}>
+              Filtros:{" "}
+              {filters.farm !== "all" ? filters.farm : "Todas Fazendas"} •{" "}
+              {filters.period} dias
             </Text>
+            <Text style={styles.subtitle}>
+              Emissão: {new Date().toLocaleDateString("pt-BR")} por {user.name}
+            </Text>
+          </View>
+
+          {/* Logo Cliente (Direita) - Se existir */}
+          {options.clientLogo ? (
+            <Image src={options.clientLogo} style={styles.logoConfig} />
+          ) : (
+            <View style={{ width: 80 }} /> // Espaço vazio para manter layout
           )}
         </View>
 
-        {/* DISTRIBUIÇÃO DE SEVERIDADE */}
-        <Text style={styles.sectionTitle}>Distribuição por Severidade</Text>
-        <View style={styles.severityContainer}>
-          <View style={[styles.severityCard, { backgroundColor: '#f0fdf4', borderColor: '#86efac' }]}>
-            <Text style={[styles.severityTitle, { color: '#166534' }]}>
-              Saudáveis: {stats.general.healthyPercentage}%
-            </Text>
-            <Text style={[styles.severityDescription, { color: '#15803d' }]}>
-              Animais sem necessidade de intervenção imediata.
-            </Text>
-          </View>
-          <View style={[styles.severityCard, { backgroundColor: '#fffbeb', borderColor: '#fde047' }]}>
-            <Text style={[styles.severityTitle, { color: '#92400e' }]}>
-              Moderados: {stats.general.moderatePercentage}%
-            </Text>
-            <Text style={[styles.severityDescription, { color: '#a16207' }]}>
-              Animais que requerem acompanhamento regular.
-            </Text>
-          </View>
-          <View style={[styles.severityCard, { backgroundColor: '#fef2f2', borderColor: '#fca5a5' }]}>
-            <Text style={[styles.severityTitle, { color: '#991b1b' }]}>
-              Críticos: {stats.general.criticalPercentage}%
-            </Text>
-            <Text style={[styles.severityDescription, { color: '#b91c1c' }]}>
-              Tratamento imediato necessário.
-            </Text>
-          </View>
-        </View>
-
-        {/* CASOS CRÍTICOS - ATENÇÃO IMEDIATA */}
-        {stats.criticalAnimals && stats.criticalAnimals.length > 0 && (
-          <View break={false} style={styles.criticalSection}>
-            <Text style={styles.criticalTitle}>
-              Atenção Imediata - Casos Críticos
-            </Text>
-            
-            {/* Cabeçalho da Tabela */}
-            <View style={styles.tableHeader}>
-              <Text style={[styles.tableHeaderText, { width: '18%' }]}>Brinco</Text>
-              <Text style={[styles.tableHeaderText, { width: '28%' }]}>Localização</Text>
-              <Text style={[styles.tableHeaderText, { width: '34%' }]}>Diagnóstico</Text>
-              <Text style={[styles.tableHeaderText, { width: '20%' }]}>Data</Text>
+        {/* 1. KPIs (CONDICIONAL) */}
+        {options.showGeneralStats && (
+          <>
+            <View style={styles.kpiContainer}>
+              <View style={styles.kpiBox}>
+                <Text style={[styles.kpiValue, { color: "#1f2937" }]}>
+                  {stats.general.total}
+                </Text>
+                <Text style={styles.kpiLabel}>Animais Avaliados</Text>
+              </View>
+              <View style={styles.kpiBox}>
+                <Text style={[styles.kpiValue, { color: "#059669" }]}>
+                  {stats.general.healthyPercentage}%
+                </Text>
+                <Text style={styles.kpiLabel}>Índice de Saúde</Text>
+              </View>
+              <View style={styles.kpiBox}>
+                <Text style={[styles.kpiValue, { color: "#dc2626" }]}>
+                  {stats.general.totalLesions}
+                </Text>
+                <Text style={styles.kpiLabel}>Total de Lesões</Text>
+              </View>
             </View>
 
-            {/* Linhas da Tabela */}
-            {stats.criticalAnimals.map((animal, i) => (
-              <View 
-                key={i} 
-                style={[styles.tableRow, i % 2 === 1 ? styles.tableRowAlt : {}]}
+            {/* DISTRIBUIÇÃO DE SEVERIDADE */}
+            <Text style={styles.sectionTitle}>Distribuição por Severidade</Text>
+            <View style={styles.severityContainer}>
+              <View
+                style={[
+                  styles.severityCard,
+                  { backgroundColor: "#f0fdf4", borderColor: "#86efac" },
+                ]}
               >
-                <Text style={[styles.tableCell, styles.tableCellBold, { width: '18%' }]}>
-                  {animal.tag}
+                <Text style={[styles.severityTitle, { color: "#166534" }]}>
+                  Saudáveis: {stats.general.healthyPercentage}%
                 </Text>
-                <Text style={[styles.tableCell, { width: '28%', color: '#4b5563' }]}>
-                  {animal.location} - {animal.farm}
-                </Text>
-                <Text style={[styles.tableCell, styles.tableCellCritical, { width: '34%' }]}>
-                  {animal.diagnosis}
-                </Text>
-                <Text style={[styles.tableCell, { width: '20%', color: '#6b7280' }]}>
-                  {new Date(animal.date).toLocaleDateString('pt-BR')}
+                <Text
+                  style={[styles.severityDescription, { color: "#15803d" }]}
+                >
+                  Animais sem necessidade de intervenção imediata.
                 </Text>
               </View>
-            ))}
-          </View>
+              <View
+                style={[
+                  styles.severityCard,
+                  { backgroundColor: "#fffbeb", borderColor: "#fde047" },
+                ]}
+              >
+                <Text style={[styles.severityTitle, { color: "#92400e" }]}>
+                  Moderados: {stats.general.moderatePercentage}%
+                </Text>
+                <Text
+                  style={[styles.severityDescription, { color: "#a16207" }]}
+                >
+                  Animais que requerem acompanhamento regular.
+                </Text>
+              </View>
+              <View
+                style={[
+                  styles.severityCard,
+                  { backgroundColor: "#fef2f2", borderColor: "#fca5a5" },
+                ]}
+              >
+                <Text style={[styles.severityTitle, { color: "#991b1b" }]}>
+                  Críticos: {stats.general.criticalPercentage}%
+                </Text>
+                <Text
+                  style={[styles.severityDescription, { color: "#b91c1c" }]}
+                >
+                  Tratamento imediato necessário.
+                </Text>
+              </View>
+            </View>
+          </>
         )}
 
-        {/* FOOTER  */}
+        {/* 2. GRÁFICO DE PATOLOGIAS (CONDICIONAL) */}
+        {options.showPathologyList && (
+          <>
+            <Text style={styles.sectionTitle}>
+              Principais Patologias Identificadas
+            </Text>
+            <View>
+              {pathologyList.map((item, index) => {
+                const percent = (item.count / total) * 100;
+                const widthPercent = percent > 100 ? 100 : percent;
+
+                return (
+                  <View key={item.key} style={styles.chartRow}>
+                    <View style={styles.chartLabelRow}>
+                      <Text style={styles.chartLabel}>{item.label}</Text>
+                      <Text style={styles.chartValue}>
+                        {item.count} ({percent.toFixed(1)}%)
+                      </Text>
+                    </View>
+                    <View style={styles.chartBarContainer}>
+                      <View
+                        style={[
+                          styles.chartBarFill,
+                          {
+                            width: `${widthPercent}%`,
+                            backgroundColor: getPathologyColor(index),
+                          },
+                        ]}
+                      />
+                    </View>
+                  </View>
+                );
+              })}
+              {pathologyList.length === 0 && (
+                <Text
+                  style={{ fontSize: 9, color: "#6b7280", fontStyle: "italic" }}
+                >
+                  Nenhum dado registrado no período selecionado.
+                </Text>
+              )}
+            </View>
+          </>
+        )}
+
+        {/* 3. CASOS CRÍTICOS (CONDICIONAL) */}
+        {options.showCriticalList &&
+          stats.criticalAnimals &&
+          stats.criticalAnimals.length > 0 && (
+            <View break={false} style={styles.criticalSection}>
+              <Text style={styles.criticalTitle}>
+                Atenção Imediata - Casos Críticos (Top 5)
+              </Text>
+
+              <View style={styles.tableHeader}>
+                <Text style={[styles.tableHeaderText, { width: "20%" }]}>
+                  Brinco
+                </Text>
+                <Text style={[styles.tableHeaderText, { width: "30%" }]}>
+                  Localização
+                </Text>
+                <Text style={[styles.tableHeaderText, { width: "35%" }]}>
+                  Diagnóstico
+                </Text>
+                <Text style={[styles.tableHeaderText, { width: "15%" }]}>
+                  Data
+                </Text>
+              </View>
+
+              {stats.criticalAnimals.map((animal, i) => (
+                <View
+                  key={i}
+                  style={[
+                    styles.tableRow,
+                    i % 2 === 1 ? styles.tableRowAlt : {},
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.tableCell,
+                      styles.tableCellBold,
+                      { width: "20%" },
+                    ]}
+                  >
+                    {animal.tag}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.tableCell,
+                      { width: "30%", color: "#4b5563" },
+                    ]}
+                  >
+                    {animal.farm} / {animal.location}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.tableCell,
+                      styles.tableCellCritical,
+                      { width: "35%" },
+                    ]}
+                  >
+                    {animal.diagnosis}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.tableCell,
+                      { width: "15%", color: "#6b7280" },
+                    ]}
+                  >
+                    {new Date(animal.date).toLocaleDateString("pt-BR")}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          )}
+
+        {/* FOOTER */}
         <View style={styles.footer}>
-          <Text>VirtualVet - Sistema de Gestão de Saúde Animal</Text>
+          <Text>
+            Relatório gerado pelo sistema VirtualVet - A saúde bucal impacta a
+            produtividade.
+          </Text>
         </View>
       </Page>
     </Document>

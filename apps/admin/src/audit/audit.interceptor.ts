@@ -1,7 +1,13 @@
-import { CallHandler, ExecutionContext, Injectable, NestInterceptor, Logger } from '@nestjs/common';
-import { Observable } from 'rxjs';
-import { tap } from 'rxjs/operators';
-import { AuditService } from './audit.service';
+import {
+  CallHandler,
+  ExecutionContext,
+  Injectable,
+  NestInterceptor,
+  Logger,
+} from "@nestjs/common";
+import { Observable } from "rxjs";
+import { tap } from "rxjs/operators";
+import { AuditService } from "./audit.service";
 
 @Injectable()
 export class AuditInterceptor implements NestInterceptor {
@@ -13,49 +19,83 @@ export class AuditInterceptor implements NestInterceptor {
     const req = context.switchToHttp().getRequest();
     const { method, url, user, params } = req;
 
-    // Se for apenas leitura (GET), não auditamos para economizar espaço
-    if (method === 'GET') {
+    // Se for apenas leitura (GET), não auditamos
+    if (method === "GET") {
       return next.handle();
     }
 
-    // O 'tap' permite executar uma ação secundária sem alterar a resposta original
     return next.handle().pipe(
       tap(async (data) => {
         try {
-          // Tenta descobrir o ID da entidade
-          // 1. Se for DELETE/PUT, geralmente está na URL (params.id)
-          // 2. Se for POST, o ID do novo item costuma vir na resposta (data.id)
-          let entityId = params.id ? params.id : (data && data.id ? data.id : 'N/A');
+          // --- 1. Tenta descobrir o ID da entidade ---
+          let entityId = params.id
+            ? params.id
+            : data && data.id
+              ? data.id
+              : "N/A";
 
-          // Tenta "adivinhar" o nome da entidade pela URL (ex: /animals -> Animal)
-          // Pega a primeira parte da URL após a barra
-          const entityPath = url.split('/')[1] || 'Unknown'; 
-          const entityName = entityPath.charAt(0).toUpperCase() + entityPath.slice(1);
+          // --- 2. Define o Nome da Entidade  ---
+          const cleanUrl = url.split("?")[0]; // Remove query params
+          const urlParts = cleanUrl.split("/").filter((p: string) => p !== ""); // Remove strings vazias
 
-          // Prepara os detalhes (ex: Body da requisição)
-          // Cuidado: Evite salvar senhas ou dados sensíveis aqui
-          const details = `Method: ${method} | Path: ${url}`;
+          // Se a URL começar com 'api', pegamos o próximo segmento (ex: /api/animals -> animals)
+          let mainResource = urlParts[0] === "api" ? urlParts[1] : urlParts[0];
 
-          // Mapeia o método HTTP para uma Ação legível
-          let action = 'UNKNOWN';
-          if (method === 'POST') action = 'CREATE';
-          if (method === 'PUT' || method === 'PATCH') action = 'UPDATE';
-          if (method === 'DELETE') action = 'DELETE';
+          if (!mainResource) mainResource = "System";
 
-          // Chama o serviço de auditoria em "background" (sem travar a resposta)
+          // Capitaliza a primeira letra (ex: animals -> Animal)
+          let entityName =
+            mainResource.charAt(0).toUpperCase() + mainResource.slice(1);
+          // Remove o 's' final para ficar no singular (ex: Animals -> Animal), lógica básica
+          if (entityName.endsWith("s")) entityName = entityName.slice(0, -1);
+
+          // --- 3. Define a Ação  ---
+          let action = "UNKNOWN";
+
+          // Mapeamento Padrão
+          if (method === "POST") action = "CREATE";
+          if (method === "PUT" || method === "PATCH") action = "UPDATE";
+          if (method === "DELETE") action = "DELETE";
+
+          // --- 4. OVERRIDES (Regras Específicas) ---
+
+          if (
+            cleanUrl.includes("/auth/signin") ||
+            cleanUrl.includes("/login")
+          ) {
+            action = "LOGIN";
+            entityName = "Auth";
+            entityId = data?.user?.id || user?.id || "N/A"; // Tenta pegar o ID do user logado
+          } else if (
+            cleanUrl.includes("/auth/signup") ||
+            cleanUrl.includes("/register")
+          ) {
+            action = "REGISTER";
+            entityName = "Auth";
+          }
+
+          // Formata a ação final (ex: CREATE_ANIMAL, LOGIN, DELETE_EVALUATION)
+          // Se for LOGIN, mantemos só LOGIN. Se for CRUD, juntamos com a entidade.
+          const finalAction =
+            action === "LOGIN" || action === "REGISTER"
+              ? action
+              : `${action}_${entityName.toUpperCase()}`;
+
+          // Prepara os detalhes
+          const details = `Method: ${method} | Path: ${cleanUrl}`;
+
+          // Grava o log
           await this.auditService.log(
-            `${action}_${entityName.toUpperCase()}`, // Ex: CREATE_ANIMAL
-            entityName,                              // Ex: Animal
+            finalAction,
+            entityName,
             entityId,
-            user,                                    // O usuário que veio do JWT
-            details
+            user,
+            details,
           );
-
         } catch (err) {
-          this.logger.error('Erro ao salvar log automático', err);
-          // Não lançamos erro aqui para não quebrar a requisição do usuário
+          this.logger.error("Erro ao salvar log automático", err);
         }
-      })
+      }),
     );
   }
 }

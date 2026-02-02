@@ -10,8 +10,10 @@ import {
 } from '@mui/material';
 import { 
   Save, ArrowBack, CheckCircle, Warning, LocationOn, 
-  CalendarToday, Pets, Person, ZoomIn, Map as MapIcon 
+  CalendarToday, Person, ZoomIn, Map as MapIcon 
 } from '@mui/icons-material';
+import BullIcon from '../../../components/icons/BullIcon';
+
 import { AnimalService, EvaluationService } from '../../../services/api';
 import DentalArch from '../../../components/DentalArch';
 import QuickMoultingSelector from '../../../components/QuickMoultingSelector'; 
@@ -416,7 +418,7 @@ export default function EvaluationPage() {
                 <Card variant="outlined" sx={{ mt: 3 }}>
                 <CardContent>
                     <Typography variant="h6" gutterBottom display="flex" alignItems="center" gap={1}>
-                        <Pets fontSize="small" /> Dados do Animal
+                        <BullIcon fontSize="large" /> Dados do Animal
                     </Typography>
                     
                     <Stack spacing={1.5}>

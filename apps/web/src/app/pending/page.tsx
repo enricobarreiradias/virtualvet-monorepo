@@ -9,8 +9,9 @@ import {
   Chip, Button, Avatar, CircularProgress, 
   Stack, Alert, Divider, Grid 
 } from '@mui/material';
-import { Search, FilterList, CheckCircle, Pets, ArrowForward, Refresh } from '@mui/icons-material';
+import { Search, FilterList, CheckCircle, ArrowForward, Refresh } from '@mui/icons-material';
 import { EvaluationService, AnimalService } from '../../services/api';
+import BullIcon from '@/components/icons/BullIcon';
 
 interface ApiAnimalResponse {
   id: string;
@@ -232,7 +233,7 @@ export default function PendingEvaluationsPage() {
                                             variant="rounded" 
                                             sx={{ width: 56, height: 56, border: '1px solid #eee' }}
                                         >
-                                            <Pets />
+                                            <BullIcon />
                                         </Avatar>
                                     </TableCell>
                                     <TableCell>

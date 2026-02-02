@@ -7,9 +7,10 @@ import {
   Button
 } from '@mui/material';
 import { 
-  Pets, Assessment, Warning, TrendingUp, CalendarToday, CheckCircle,
+  Assessment, Warning, TrendingUp, CalendarToday, CheckCircle,
   Sync
 } from '@mui/icons-material';
+import BullIcon from '../../components/icons/BullIcon';
 import { api, AnimalService } from '@/services/api';
 
 // --- INTERFACES ---
@@ -159,7 +160,6 @@ export default function DashboardPage() {
         </Stack>
       </Box>
 
-      {/* Se houver mensagem de sucesso, mostre aqui */}
       {successMsg && <Alert severity="success" sx={{ mb: 3 }}>{successMsg}</Alert>}
 
       {/* KPIs Principais */}
@@ -168,7 +168,7 @@ export default function DashboardPage() {
           <StatCard 
             title="TOTAL DE ANIMAIS" 
             value={stats.totalAnimals} 
-            icon={<Pets sx={{ fontSize: 80 }} />}
+            icon={<BullIcon sx={{ fontSize: 80 }} />}
             color="#0F766E" 
             subtitle="Cadastrados no sistema"
           />
