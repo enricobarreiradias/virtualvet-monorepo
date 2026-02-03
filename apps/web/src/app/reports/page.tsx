@@ -38,12 +38,13 @@ import {
   Assessment,
   Warning,
   CheckCircle,
+  AccessTime,
 } from "@mui/icons-material";
 import { AnimalService, EvaluationService } from "../../services/api";
 // IMPORT DO MODAL
 import StatsReportModal from "../../components/pdf/StatsReportModal";
 
-// --- TIPAGEM ---
+// --- TIPAGEM ATUALIZADA ---
 interface ReportStats {
   general: {
     total: number;
@@ -55,6 +56,15 @@ interface ReportStats {
     moderatePercentage: string;
     criticalPercentage: string;
   };
+  // NOVO CAMPO: CRONOLOGIA
+  chronology: Record<
+    string,
+    {
+      label: string;
+      count: number;
+      key: string;
+    }
+  >;
   pathologies: Record<
     string,
     {
@@ -179,9 +189,17 @@ export default function ReportsPage() {
     loadReportData();
   };
 
+  // --- NAVEGAÇÃO / FILTROS ---
+
   const handlePathologyClick = (key: string) => {
     router.push(
       `/history?pathology=${key}&farm=${filterFarm}&client=${filterClient}`,
+    );
+  };
+
+  const handleChronologyClick = (key: string) => {
+    router.push(
+      `/history?chronology=${key}&farm=${filterFarm}&client=${filterClient}`,
     );
   };
 
@@ -208,6 +226,15 @@ export default function ReportsPage() {
         })
     : [];
 
+  // --- LÓGICA DINÂMICA DE CRONOLOGIA ---
+  // Ordem lógica de idade: DL -> 2D -> 4D -> 6D -> 8D
+  const chronOrder = ["dl", "2d", "4d", "6d", "8d"];
+  const chronologyList = stats?.chronology
+    ? Object.values(stats.chronology).sort(
+        (a, b) => chronOrder.indexOf(a.key) - chronOrder.indexOf(b.key),
+      )
+    : [];
+
   const getPathologyColor = (index: number) => {
     const colors = [
       "#f59e0b",
@@ -216,6 +243,18 @@ export default function ReportsPage() {
       "#b91c1c",
       "#3b82f6",
       "#6366f1",
+    ];
+    return colors[index % colors.length];
+  };
+
+  // Cor específica para barras de cronologia (tons de azul/ciano)
+  const getChronologyColor = (index: number) => {
+    const colors = [
+      "#0ea5e9", // Sky 500
+      "#0284c7", // Sky 600
+      "#0369a1", // Sky 700
+      "#075985", // Sky 800
+      "#0c4a6e", // Sky 900
     ];
     return colors[index % colors.length];
   };
@@ -281,7 +320,7 @@ export default function ReportsPage() {
               Relatórios Gerenciais
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Análise populacional e saúde do rebanho
+              Análise populacional, cronologia e saúde do rebanho
             </Typography>
           </Box>
 
@@ -393,7 +432,7 @@ export default function ReportsPage() {
         </Box>
       </Box>
 
-      {/* CONTEÚDO PRINCIPAL (Mantido igual) */}
+      {/* CONTEÚDO PRINCIPAL */}
       <Box px={4} pt={4}>
         {/* KPIs - CARDS MODERNOS */}
         <Grid container spacing={3} mb={4}>
@@ -569,10 +608,10 @@ export default function ReportsPage() {
           </Grid>
         </Grid>
 
-        {/* GRÁFICOS E ANÁLISES */}
+        {/* GRÁFICOS E ANÁLISES (Layout de 3 Colunas) */}
         <Grid container spacing={3} mb={4}>
-          {/* PATOLOGIAS */}
-          <Grid size={{ xs: 12, lg: 7 }}>
+          {/* 1. PATOLOGIAS (Esquerda) */}
+          <Grid size={{ xs: 12, lg: 4 }}>
             <Card
               elevation={0}
               sx={{
@@ -667,30 +706,123 @@ export default function ReportsPage() {
                       );
                     })
                   ) : (
-                    <Box
-                      sx={{
-                        p: 6,
-                        textAlign: "center",
-                        bgcolor: "#f8fafc",
-                        borderRadius: 2,
-                      }}
+                    <Typography
+                      color="text.secondary"
+                      fontStyle="italic"
+                      align="center"
                     >
-                      <Typography
-                        variant="body2"
-                        color="text.secondary"
-                        fontStyle="italic"
-                      >
-                        Nenhuma patologia registrada no período
-                      </Typography>
-                    </Box>
+                      Nenhuma patologia registrada.
+                    </Typography>
                   )}
                 </Stack>
               </CardContent>
             </Card>
           </Grid>
 
-          {/* SEVERIDADE */}
-          <Grid size={{ xs: 12, lg: 5 }}>
+          {/* 2. CRONOLOGIA DENTÁRIA (Centro - NOVO) */}
+          <Grid size={{ xs: 12, lg: 4 }}>
+            <Card
+              elevation={0}
+              sx={{
+                border: "1px solid",
+                borderColor: "divider",
+                borderRadius: 2,
+                height: "100%",
+              }}
+            >
+              <CardContent sx={{ p: 3 }}>
+                <Stack direction="row" alignItems="center" spacing={1} mb={3}>
+                  <AccessTime color="secondary" />
+                  <Typography variant="h6" fontWeight={700}>
+                    Cronologia Dentária
+                  </Typography>
+                </Stack>
+
+                <Stack spacing={2.5}>
+                  {chronologyList.length > 0 ? (
+                    chronologyList.map((item, index) => {
+                      const color = getChronologyColor(index);
+                      const percentage = stats.general.total
+                        ? (item.count / stats.general.total) * 100
+                        : 0;
+
+                      return (
+                        <Box
+                          key={item.key}
+                          onClick={() => handleChronologyClick(item.key)}
+                          sx={{
+                            cursor: "pointer",
+                            p: 2,
+                            borderRadius: 1,
+                            transition: "all 0.2s",
+                            "&:hover": {
+                              bgcolor: alpha(color, 0.05),
+                              transform: "translateX(4px)",
+                            },
+                          }}
+                        >
+                          <Stack
+                            direction="row"
+                            justifyContent="space-between"
+                            alignItems="center"
+                            mb={1}
+                          >
+                            <Typography
+                              variant="body2"
+                              fontWeight={600}
+                              color="text.primary"
+                            >
+                              {item.label}
+                            </Typography>
+                            <Stack
+                              direction="row"
+                              alignItems="center"
+                              spacing={1}
+                            >
+                              <Chip
+                                label={`${item.count}`}
+                                size="small"
+                                sx={{
+                                  bgcolor: alpha(color, 0.1),
+                                  color: color,
+                                  fontWeight: 700,
+                                  fontSize: "0.75rem",
+                                }}
+                              />
+                            </Stack>
+                          </Stack>
+                          <LinearProgress
+                            variant="determinate"
+                            value={percentage}
+                            sx={{
+                              height: 8,
+                              borderRadius: 4,
+                              bgcolor: alpha(color, 0.1),
+                              "& .MuiLinearProgress-bar": {
+                                bgcolor: color,
+                                borderRadius: 4,
+                              },
+                            }}
+                          />
+                        </Box>
+                      );
+                    })
+                  ) : (
+                    <Typography
+                      color="text.secondary"
+                      fontStyle="italic"
+                      align="center"
+                    >
+                      Nenhum dado de cronologia.
+                    </Typography>
+                  )}
+                </Stack>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* 3. SEVERIDADE (Direita) */}
+          <Grid size={{ xs: 12, lg: 4 }}>
             <Card
               elevation={0}
               sx={{
@@ -704,25 +836,20 @@ export default function ReportsPage() {
                 <Stack direction="row" alignItems="center" spacing={1} mb={3}>
                   <PieChart color="primary" />
                   <Typography variant="h6" fontWeight={700}>
-                    Distribuição de Severidade
+                    Status do Rebanho
                   </Typography>
                 </Stack>
 
-                <Stack spacing={3}>
+                <Stack spacing={2}>
                   {/* Saudáveis */}
                   <Paper
                     elevation={0}
                     sx={{
-                      p: 2.5,
+                      p: 2,
                       bgcolor: alpha("#2e7d32", 0.05),
-                      border: "2px solid",
+                      border: "1px solid",
                       borderColor: alpha("#2e7d32", 0.2),
                       borderRadius: 2,
-                      transition: "all 0.3s",
-                      "&:hover": {
-                        borderColor: "success.main",
-                        boxShadow: `0 0 0 4px ${alpha("#2e7d32", 0.1)}`,
-                      },
                     }}
                   >
                     <Stack
@@ -732,10 +859,9 @@ export default function ReportsPage() {
                     >
                       <Box>
                         <Typography
-                          variant="h4"
+                          variant="h5"
                           fontWeight={700}
                           color="success.main"
-                          mb={0.5}
                         >
                           {stats.general.healthyPercentage}%
                         </Typography>
@@ -744,17 +870,14 @@ export default function ReportsPage() {
                           fontWeight={600}
                           color="success.dark"
                         >
-                          Animais Saudáveis
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          Sem necessidade de intervenção
+                          Saudáveis
                         </Typography>
                       </Box>
                       <CheckCircle
                         sx={{
-                          fontSize: 48,
+                          fontSize: 32,
                           color: "success.main",
-                          opacity: 0.3,
+                          opacity: 0.5,
                         }}
                       />
                     </Stack>
@@ -764,16 +887,11 @@ export default function ReportsPage() {
                   <Paper
                     elevation={0}
                     sx={{
-                      p: 2.5,
+                      p: 2,
                       bgcolor: alpha("#ed6c02", 0.05),
-                      border: "2px solid",
+                      border: "1px solid",
                       borderColor: alpha("#ed6c02", 0.2),
                       borderRadius: 2,
-                      transition: "all 0.3s",
-                      "&:hover": {
-                        borderColor: "warning.main",
-                        boxShadow: `0 0 0 4px ${alpha("#ed6c02", 0.1)}`,
-                      },
                     }}
                   >
                     <Stack
@@ -783,10 +901,9 @@ export default function ReportsPage() {
                     >
                       <Box>
                         <Typography
-                          variant="h4"
+                          variant="h5"
                           fontWeight={700}
                           color="warning.main"
-                          mb={0.5}
                         >
                           {stats.general.moderatePercentage}%
                         </Typography>
@@ -795,17 +912,14 @@ export default function ReportsPage() {
                           fontWeight={600}
                           color="warning.dark"
                         >
-                          Casos Moderados
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          Requerem acompanhamento
+                          Moderados
                         </Typography>
                       </Box>
                       <TrendingUp
                         sx={{
-                          fontSize: 48,
+                          fontSize: 32,
                           color: "warning.main",
-                          opacity: 0.3,
+                          opacity: 0.5,
                         }}
                       />
                     </Stack>
@@ -815,16 +929,11 @@ export default function ReportsPage() {
                   <Paper
                     elevation={0}
                     sx={{
-                      p: 2.5,
+                      p: 2,
                       bgcolor: alpha("#d32f2f", 0.05),
-                      border: "2px solid",
+                      border: "1px solid",
                       borderColor: alpha("#d32f2f", 0.2),
                       borderRadius: 2,
-                      transition: "all 0.3s",
-                      "&:hover": {
-                        borderColor: "error.main",
-                        boxShadow: `0 0 0 4px ${alpha("#d32f2f", 0.1)}`,
-                      },
                     }}
                   >
                     <Stack
@@ -834,10 +943,9 @@ export default function ReportsPage() {
                     >
                       <Box>
                         <Typography
-                          variant="h4"
+                          variant="h5"
                           fontWeight={700}
                           color="error.main"
-                          mb={0.5}
                         >
                           {stats.general.criticalPercentage}%
                         </Typography>
@@ -846,14 +954,11 @@ export default function ReportsPage() {
                           fontWeight={600}
                           color="error.dark"
                         >
-                          Casos Críticos
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          Tratamento imediato necessário
+                          Críticos
                         </Typography>
                       </Box>
                       <Warning
-                        sx={{ fontSize: 48, color: "error.main", opacity: 0.3 }}
+                        sx={{ fontSize: 32, color: "error.main", opacity: 0.5 }}
                       />
                     </Stack>
                   </Paper>
@@ -863,7 +968,7 @@ export default function ReportsPage() {
           </Grid>
         </Grid>
 
-        {/* CASOS CRÍTICOS */}
+        {/* CASOS CRÍTICOS (Tabela) */}
         {stats.criticalAnimals && stats.criticalAnimals.length > 0 && (
           <Card
             elevation={0}
@@ -872,6 +977,7 @@ export default function ReportsPage() {
               borderColor: "error.main",
               borderRadius: 2,
               overflow: "hidden",
+              mb: 6,
             }}
           >
             <Box
@@ -920,7 +1026,6 @@ export default function ReportsPage() {
                         fontWeight: 700,
                         fontSize: "0.75rem",
                         textTransform: "uppercase",
-                        letterSpacing: 0.5,
                       }}
                     >
                       Brinco
@@ -930,7 +1035,6 @@ export default function ReportsPage() {
                         fontWeight: 700,
                         fontSize: "0.75rem",
                         textTransform: "uppercase",
-                        letterSpacing: 0.5,
                       }}
                     >
                       Localização
@@ -940,7 +1044,6 @@ export default function ReportsPage() {
                         fontWeight: 700,
                         fontSize: "0.75rem",
                         textTransform: "uppercase",
-                        letterSpacing: 0.5,
                       }}
                     >
                       Diagnóstico
@@ -950,22 +1053,11 @@ export default function ReportsPage() {
                         fontWeight: 700,
                         fontSize: "0.75rem",
                         textTransform: "uppercase",
-                        letterSpacing: 0.5,
                       }}
                     >
                       Data
                     </TableCell>
-                    <TableCell
-                      align="right"
-                      sx={{
-                        fontWeight: 700,
-                        fontSize: "0.75rem",
-                        textTransform: "uppercase",
-                        letterSpacing: 0.5,
-                      }}
-                    >
-                      Ação
-                    </TableCell>
+                    <TableCell align="right">Ação</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -1012,7 +1104,6 @@ export default function ReportsPage() {
                           size="small"
                           color="primary"
                           sx={{
-                            transition: "all 0.2s",
                             "&:hover": { transform: "translateX(4px)" },
                           }}
                         >
@@ -1033,6 +1124,7 @@ export default function ReportsPage() {
             elevation={0}
             sx={{
               p: 6,
+              mb: 6,
               textAlign: "center",
               border: "2px dashed",
               borderColor: "success.light",
