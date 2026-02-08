@@ -1,3 +1,4 @@
+// apps/web/src/components/pdf/StatsReportDoc.tsx
 import {
   Page,
   Text,
@@ -244,13 +245,17 @@ export interface ReportStatsData {
     criticalPercentage: string;
   };
   pathologies: Record<string, PathologyItem>;
+  // [NOVO] Adicionado suporte para cronologia
+  chronology?: Record<string, PathologyItem>;
   criticalAnimals?: CriticalAnimal[];
 }
 
-// --- NOVA INTERFACE DE OPÇÕES ---
+// --- INTERFACE DE OPÇÕES ---
 export interface StatsReportOptions {
   showGeneralStats: boolean;
   showPathologyList: boolean;
+  // [NOVO] Opção para exibir cronologia
+  showChronology?: boolean;
   showCriticalList: boolean;
   clientLogo?: string | null;
   clientName?: string;
@@ -265,7 +270,7 @@ interface Props {
     period: string;
   };
   user: { name: string };
-  options: StatsReportOptions; // Adicionado aqui
+  options: StatsReportOptions;
 }
 
 export const StatsReportDoc = ({
@@ -273,28 +278,48 @@ export const StatsReportDoc = ({
   pathologyList,
   filters,
   user,
-  options, // Recebendo opções
+  options,
 }: Props) => {
   const total = stats.general.total || 1;
 
+  // Cor para Patologias
   const getPathologyColor = (index: number) => {
     const colors = [
-      "#0F766E", // Primary
-      "#10b981",
-      "#f59e0b",
+      "#0F766E",
       "#ef4444",
+      "#f59e0b",
       "#8b5cf6",
       "#ec4899",
+      "#3b82f6",
+      "#10b981",
+      "#6366f1",
+      "#f97316",
+      "#14b8a6",
     ];
     return colors[index % colors.length];
   };
 
+  const getChronologyColor = (index: number) => {
+    const colors = ["#0ea5e9", "#0284c7", "#0369a1", "#075985", "#0c4a6e"];
+    return colors[index % colors.length];
+  };
+
+  // Lógica de processamento da Cronologia
+  const chronOrder = ["dl", "2d", "4d", "6d", "8d"];
+  const chronologyList = stats.chronology
+    ? Object.values(stats.chronology).sort(
+        (a, b) => chronOrder.indexOf(a.key) - chronOrder.indexOf(b.key),
+      )
+    : [];
+
+  // Define padrão true para showChronology se não for passado
+  const showChronology = options.showChronology !== false;
+
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        {/* HEADER COM DUAS LOGOS */}
+        {/* HEADER */}
         <View style={styles.header}>
-          {/* Logo VirtualVet (Esquerda) */}
           <Image src="/logoFull.png" style={styles.logoConfig} />
 
           <View style={styles.titleBlock}>
@@ -314,15 +339,14 @@ export const StatsReportDoc = ({
             </Text>
           </View>
 
-          {/* Logo Cliente (Direita) - Se existir */}
           {options.clientLogo ? (
             <Image src={options.clientLogo} style={styles.logoConfig} />
           ) : (
-            <View style={{ width: 80 }} /> // Espaço vazio para manter layout
+            <View style={{ width: 80 }} />
           )}
         </View>
 
-        {/* 1. KPIs (CONDICIONAL) */}
+        {/* 1. KPIs */}
         {options.showGeneralStats && (
           <>
             <View style={styles.kpiContainer}>
@@ -346,7 +370,7 @@ export const StatsReportDoc = ({
               </View>
             </View>
 
-            {/* DISTRIBUIÇÃO DE SEVERIDADE */}
+            {/* SEVERIDADE */}
             <Text style={styles.sectionTitle}>Distribuição por Severidade</Text>
             <View style={styles.severityContainer}>
               <View
@@ -398,7 +422,44 @@ export const StatsReportDoc = ({
           </>
         )}
 
-        {/* 2. GRÁFICO DE PATOLOGIAS (CONDICIONAL) */}
+        {/* 2. CRONOLOGIA DENTÁRIA (NOVA SEÇÃO) */}
+        {showChronology && chronologyList.length > 0 && (
+          <>
+            <Text style={styles.sectionTitle}>
+              Cronologia Dentária (Idade Estimada)
+            </Text>
+            <View>
+              {chronologyList.map((item, index) => {
+                const percent = (item.count / total) * 100;
+                const widthPercent = percent > 100 ? 100 : percent;
+
+                return (
+                  <View key={item.key} style={styles.chartRow}>
+                    <View style={styles.chartLabelRow}>
+                      <Text style={styles.chartLabel}>{item.label}</Text>
+                      <Text style={styles.chartValue}>
+                        {item.count} ({percent.toFixed(1)}%)
+                      </Text>
+                    </View>
+                    <View style={styles.chartBarContainer}>
+                      <View
+                        style={[
+                          styles.chartBarFill,
+                          {
+                            width: `${widthPercent}%`,
+                            backgroundColor: getChronologyColor(index),
+                          },
+                        ]}
+                      />
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          </>
+        )}
+
+        {/* 3. GRÁFICO DE PATOLOGIAS */}
         {options.showPathologyList && (
           <>
             <Text style={styles.sectionTitle}>
@@ -442,7 +503,7 @@ export const StatsReportDoc = ({
           </>
         )}
 
-        {/* 3. CASOS CRÍTICOS (CONDICIONAL) */}
+        {/* 4. CASOS CRÍTICOS */}
         {options.showCriticalList &&
           stats.criticalAnimals &&
           stats.criticalAnimals.length > 0 && (

@@ -125,6 +125,7 @@ export class EvaluationController {
     @Query("filterFarm") filterFarm?: string,
     @Query("filterClient") filterClient?: string,
     @Query("filterPathology") filterPathology?: string,
+    @Query("filterChronology") filterChronology?: string,
   ) {
     return await this.evaluationService.findAllHistory(
       page,
@@ -133,6 +134,7 @@ export class EvaluationController {
       filterFarm,
       filterClient,
       filterPathology,
+      filterChronology,
     );
   }
 

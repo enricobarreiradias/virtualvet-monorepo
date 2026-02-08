@@ -357,7 +357,7 @@ export class EvaluationService {
         // CORREÇÃO: Adicionado ::text após tooth_code para permitir o operador LIKE
         query.andWhere(
           `(SELECT COUNT(*) FROM tooth_evaluation te 
-            WHERE te.evaluation_id = evaluation.id 
+            WHERE te.dental_evaluation_id = evaluation.id 
             AND te.tooth_code::text LIKE 'I%' 
             AND te.tooth_type = 'PERMANENT') ${condition}`,
         );

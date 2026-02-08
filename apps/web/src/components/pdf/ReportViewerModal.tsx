@@ -1,81 +1,164 @@
-import React, { useEffect, useState } from 'react';
-import { Dialog, Box, CircularProgress, Typography, IconButton } from '@mui/material';
-import { Close } from '@mui/icons-material';
-import { PDFViewer } from '@react-pdf/renderer';
-import { EvaluationService } from '../../services/api';
-import { DentalReportDoc, ReportData } from './DentalReportDoc';
+import { useEffect, useState } from "react";
+import {
+  Dialog,
+  AppBar,
+  Toolbar,
+  IconButton,
+  Typography,
+  Box,
+  CircularProgress,
+  Slide,
+  Button,
+} from "@mui/material";
+import { Close, Download } from "@mui/icons-material";
+import { TransitionProps } from "@mui/material/transitions";
+import React from "react";
+import { PDFViewer, PDFDownloadLink } from "@react-pdf/renderer";
+import { EvaluationService } from "../../services/api";
+import { DentalReportDoc, ReportData } from "./DentalReportDoc";
 
+const Transition = React.forwardRef(function Transition(
+  props: TransitionProps & {
+    children: React.ReactElement;
+  },
+  ref: React.Ref<unknown>,
+) {
+  return <Slide direction="up" ref={ref} {...props} />;
+});
+
+// [NOVO] Adicionada prop user
 interface Props {
-    open: boolean;
-    onClose: () => void;
-    evaluationId: string | null;
+  open: boolean;
+  onClose: () => void;
+  evaluationId: string | null;
+  user?: { name: string; email?: string } | null;
 }
 
-export default function ReportViewerModal({ open, onClose, evaluationId }: Props) {
-    const [data, setData] = useState<ReportData | null>(null);
-    const [loading, setLoading] = useState(false);
+export default function ReportViewerModal({
+  open,
+  onClose,
+  evaluationId,
+  user, // Recebe o usuário da HistoryPage
+}: Props) {
+  const [data, setData] = useState<ReportData | null>(null);
+  const [loading, setLoading] = useState(false);
 
-    useEffect(() => {
-        let isMounted = true; 
+  useEffect(() => {
+    let isActive = true;
 
-        const loadReport = async () => {
-            if (!open || !evaluationId) return;
+    const loadData = async () => {
+      if (!open || !evaluationId) {
+        if (isActive) setData(null);
+        return;
+      }
 
-            setLoading(true);
-            
-            try {
-                const res = await EvaluationService.getOne(evaluationId);
-                
-                if (isMounted) {
-                    setData(res.data);
-                }
-            } catch (err) {
-                console.error(err);
-                if (isMounted) {
-                    alert("Erro ao carregar os dados do relatório.");
-                }
-            } finally {
-                if (isMounted) {
-                    setLoading(false);
-                }
-            }
-        };
+      if (isActive) setLoading(true);
 
-        loadReport();
+      try {
+        const response = await EvaluationService.getOne(evaluationId);
+        if (isActive) {
+          setData(response.data);
+        }
+      } catch (err) {
+        console.error("Erro ao carregar laudo:", err);
+      } finally {
+        if (isActive) {
+          setLoading(false);
+        }
+      }
+    };
 
-        return () => {
-            isMounted = false;
-        };
-    }, [open, evaluationId]);
+    loadData();
 
-    return (
-        <Dialog open={open} onClose={onClose} fullScreen>
-            <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
-                
-                {/* Header */}
-                <Box sx={{ p: 2, bgcolor: '#333', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Typography variant="h6">Visualização de Laudo</Typography>
-                    <IconButton onClick={onClose} sx={{ color: '#fff' }}>
-                        <Close />
-                    </IconButton>
-                </Box>
+    return () => {
+      isActive = false;
+    };
+  }, [open, evaluationId]);
 
-                {/* Body */}
-                <Box sx={{ flex: 1, bgcolor: '#eee', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                    {loading ? (
-                        <Box display="flex" flexDirection="column" alignItems="center" gap={2}>
-                            <CircularProgress size={50} />
-                            <Typography color="text.secondary">Gerando PDF...</Typography>
-                        </Box>
-                    ) : data ? (
-                        <PDFViewer width="100%" height="100%" style={{ border: 'none' }}>
-                            <DentalReportDoc data={data} />
-                        </PDFViewer>
-                    ) : (
-                        <Typography color="error">Não foi possível carregar os dados.</Typography>
-                    )}
-                </Box>
-            </Box>
-        </Dialog>
-    );
+  return (
+    <Dialog
+      fullScreen
+      open={open}
+      onClose={onClose}
+      TransitionComponent={Transition}
+    >
+      <AppBar sx={{ position: "relative", bgcolor: "#0F766E" }}>
+        <Toolbar>
+          <IconButton
+            edge="start"
+            color="inherit"
+            onClick={onClose}
+            aria-label="fechar"
+          >
+            <Close />
+          </IconButton>
+
+          <Typography sx={{ ml: 2, flex: 1 }} variant="h6" component="div">
+            Visualização de Laudo Individual
+          </Typography>
+
+          {!loading && data && (
+            <PDFDownloadLink
+              // [NOVO] Passa o user para o PDF para gerar o botão de download
+              document={
+                <DentalReportDoc
+                  data={data}
+                  user={
+                    user
+                      ? { name: user.name || user.email || "Usuário" }
+                      : undefined
+                  }
+                />
+              }
+              fileName={`Laudo_${data.animal?.tagCode || "Animal"}_${evaluationId}.pdf`}
+              style={{ textDecoration: "none", color: "white" }}
+            >
+              {({ loading: pdfLoading }) => (
+                <Button color="inherit" startIcon={<Download />}>
+                  {pdfLoading ? "Gerando..." : "Baixar"}
+                </Button>
+              )}
+            </PDFDownloadLink>
+          )}
+        </Toolbar>
+      </AppBar>
+
+      <Box
+        sx={{
+          flex: 1,
+          bgcolor: "#525659",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100%",
+        }}
+      >
+        {loading ? (
+          <Box textAlign="center" color="white">
+            <CircularProgress color="inherit" />
+            <Typography mt={2}>Carregando dados da avaliação...</Typography>
+          </Box>
+        ) : data ? (
+          <PDFViewer
+            width="100%"
+            height="100%"
+            showToolbar={true}
+            style={{ border: "none" }}
+          >
+            {/* [NOVO] Passa o user para o PDF na visualização */}
+            <DentalReportDoc
+              data={data}
+              user={
+                user
+                  ? { name: user.name || user.email || "Usuário" }
+                  : undefined
+              }
+            />
+          </PDFViewer>
+        ) : (
+          <Typography color="white">Nenhum dado carregado.</Typography>
+        )}
+      </Box>
+    </Dialog>
+  );
 }
